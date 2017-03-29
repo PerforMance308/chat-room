@@ -1,0 +1,14 @@
+syntax = "proto2";
+package proto_struct;
+
+enum RequestId {
+    role_login_c2s      = 1;
+    role_login_s2c      = 2;
+}
+
+message roleLoginC2s {
+    required string account = 1;
+}
+
+message roleLoginS2c {
+}
