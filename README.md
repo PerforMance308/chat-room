@@ -1,5 +1,5 @@
 ##a chat room server
 
-`go get github.com/wangshiqi308/otp`
+`go run Server.go`
 
-`go run testApp.go`
+`go run Client.go`
