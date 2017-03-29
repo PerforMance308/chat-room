@@ -100,7 +100,7 @@ func (s *Server) removeClient(c *Client) {
 func (s *Server) dispatch(client *Client, mId uint16, request []byte) {
 	defer func() {
 		if r := recover(); r != nil {
-			logger.Logger().Error("Panic recovered from Dispatch Error")
+			logger.Logger().Error("Panic recovered from Dispatch Error",r)
 		}
 	}()
 
@@ -111,20 +111,19 @@ func (s *Server) dispatch(client *Client, mId uint16, request []byte) {
 	}
 
 	if handler, ok := s.requestHandlers[mId]; ok {
-		logger.Logger().Notice(fmt.Sprintf("Dispatch a pack to handler .", mId))
 		in := make([]reflect.Value, 2)
 		in[0] = reflect.ValueOf(client)
 		in[1] = reflect.ValueOf(rqParams).Elem()
 
 		handler.Call(in)
 	} else {
-		logger.Logger().Notice(fmt.Sprintf("No Handler for the handle id: ", mId))
+		logger.Logger().Notice(fmt.Sprintf("No Handler for the handle id:", mId))
 	}
 }
 
 func (s *Server) AddRequestHandler(id uint16, handler interface{}) {
 	if _, ok := s.requestHandlers[id]; ok {
-		logger.Logger().Error(fmt.Sprintf("There were a handler for ", id))
+		logger.Logger().Error(fmt.Sprintf("There were a handler for", id))
 	} else {
 
 		hId, hFun := ParseRequestHandlerFun(handler)

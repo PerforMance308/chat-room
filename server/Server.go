@@ -7,6 +7,7 @@ import (
 	"server/handlers"
 	"server/util"
 	"server/options"
+	"server/db"
 )
 
 func main() {
@@ -23,7 +24,7 @@ func main() {
 		server.AddRequestHandler(uint16(id), fun)
 	}
 
-	conf.DbConf.InitDB()
+	db.InitDB(conf.DbConf)
 
 	go server.Start()
 

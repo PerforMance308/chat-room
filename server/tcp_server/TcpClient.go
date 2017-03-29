@@ -10,6 +10,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"gopkg.in/mgo.v2/bson"
+	"io"
 )
 
 type Client struct {
@@ -52,7 +53,7 @@ func (c *Client) CloseConnection(after time.Duration, wait bool) {
 		time.Sleep(after)
 	}
 
-	logger.Logger().Notice("The client ", c.id," close connection or timeout")
+	logger.Logger().Notice("The client", c.id,"close connection or timeout")
 
 	c.nc.Close()
 	c.SetClosed()
@@ -76,11 +77,23 @@ func (c *Client) readLoop() {
 
 	for c.srv.isRunning() {
 		if c.isRunning() {
-			c.netConn().SetReadDeadline(time.Now().Add(10 * time.Second))
+			c.netConn().SetReadDeadline(time.Now().Add(5 * time.Minute))
 			i, err := c.netConn().Read(bytes)
 
 			if err != nil {
-				c.CloseConnection(0*time.Second, false)
+				if err != io.EOF {
+					c.CloseConnection(0*time.Second, false)
+					return
+				}else {
+					if c.eofCount > 4 {
+						c.CloseConnection(0*time.Second, false)
+						return
+
+					}
+					c.eofCount += 1
+					time.Sleep(300 * time.Millisecond)
+					continue
+				}
 			} else {
 				c.eofCount = 0
 				if i == 0 {

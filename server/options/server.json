@@ -5,19 +5,9 @@
   },
 
   "DbConf": {
-    "MongoDbConf": {
-      "Db": {
-        "DBName": "db",
-        "Hosts": "127.0.0.1:27017",
-        "Password": "",
-        "User": ""
-      }
-    },
-    "RedisDbConf": {
-      "Db": {
-        "Addr": "127.0.0.1:6379",
-        "DB": 1
-      }
-    }
+    "DBName": "test",
+    "Hosts": "127.0.0.1:27017",
+    "Password": "",
+    "User": ""
   }
 }

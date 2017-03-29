@@ -5,9 +5,17 @@ import (
 	"server/proto_struct"
 	"server/tcp_server"
 	"server/logger"
+	"server/db"
 )
 
+type data struct {
+	User string
+}
 func HandleRoleLoginC2S(c *tcp_server.Client, rqParam proto_struct.RoleLoginC2S) {
+	data := &data{User:*rqParam.Account}
+	if err := db.MDB("player").Insert(data); err!=nil{
+		logger.Logger().Error(err)
+	}
 	c.Write(EncodeRoleLoginS2C())
 }
 
