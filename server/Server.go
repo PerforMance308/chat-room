@@ -26,7 +26,7 @@ func main() {
 
 	db.InitDB(conf.DbConf)
 
-	go server.Start()
+	server.Start()
 
 	wg.Wait()
 }

@@ -67,33 +67,28 @@ func (s *Server) Start() {
 			conn, err := l.Accept()
 
 			if err != nil {
-				if ne, ok := err.(net.Error); ok && ne.Temporary() {
-					logger.Logger().Error("Temporary Client accept Error ", err)
-					//time.Sleep(10)
-				} else if s.isRunning() {
-					logger.Logger().Critical("Accept error: ", err)
-				}
-				continue
+				logger.Logger().Error("Temporary Client accept Error ", err)
 			}
 
-			s.handleConn(conn)
+			go s.handleConn(conn)
 		}
 	}
 	logger.Logger().Info("Sever exiting")
 }
 
 func (s *Server) handleConn(conn net.Conn) {
-	logger.Logger().Debug("server clients counter ", len(s.clients))
+	//logger.Logger().Debug("server clients counter ", len(s.clients))
 	c := initClient(conn, s)
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	s.clients[c.id] = c
-
 }
 
 func (s *Server) removeClient(c *Client) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	delete(s.clients, c.id)
 }
 

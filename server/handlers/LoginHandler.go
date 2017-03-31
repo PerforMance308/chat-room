@@ -16,14 +16,15 @@ func HandleRoleLoginC2S(c *tcp_server.Client, rqParam proto_struct.RoleLoginC2S)
 	if err := db.MDB("player").Insert(data); err!=nil{
 		logger.Logger().Error(err)
 	}
-	c.Write(EncodeRoleLoginS2C())
+	msgId, msg := EncodeRoleLoginS2C()
+	c.Write(msgId, msg)
 }
 
-func EncodeRoleLoginS2C() *[]byte {
-	msg := &proto_struct.RoleLoginS2C{}
+func EncodeRoleLoginS2C() (uint16, []byte) {
+	msg := &proto_struct.RoleLoginS2C{Res:proto.Bool(true)}
 	data, err := proto.Marshal(msg)
 	if err != nil {
 		logger.Logger().Error("encode EncodeRoleLoginS2C error")
 	}
-	return &data
+	return uint16(proto_struct.RequestId_role_login_s2c), data
 }

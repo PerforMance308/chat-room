@@ -10,7 +10,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"gopkg.in/mgo.v2/bson"
-	"io"
 )
 
 type Client struct {
@@ -20,7 +19,6 @@ type Client struct {
 	nc                    net.Conn
 	sendBuff              chan *[]byte
 	srv                   *Server
-	eofCount              uint
 	lastDispatchedAt      int64
 	lastDispatchedCounter int
 	running               bool
@@ -53,13 +51,15 @@ func (c *Client) CloseConnection(after time.Duration, wait bool) {
 		time.Sleep(after)
 	}
 
-	logger.Logger().Notice("The client", c.id,"close connection or timeout")
-
-	c.nc.Close()
 	c.SetClosed()
 	if c.srv != nil {
 		c.srv.removeClient(c)
 	}
+
+	close(c.sendBuff)
+	c.nc.Close()
+
+	logger.Logger().Notice("The client", c.id, "close connection or timeout")
 }
 
 func (c *Client) readLoop() {
@@ -81,42 +81,28 @@ func (c *Client) readLoop() {
 			i, err := c.netConn().Read(bytes)
 
 			if err != nil {
-				if err != io.EOF {
+				if err.Error() == "EOF" {
 					c.CloseConnection(0*time.Second, false)
-					return
-				}else {
-					if c.eofCount > 4 {
-						c.CloseConnection(0*time.Second, false)
-						return
+					break
+				}
+			}
+			data := bytes[:i]
 
+			var e error
+
+			if e == nil && len(data) > 0 {
+				if c.lastDispatchedAt == time.Now().Unix() {
+					c.lastDispatchedCounter += 1
+					if c.lastDispatchedCounter >= 6 {
+						time.Sleep(2 * time.Second)
 					}
-					c.eofCount += 1
-					time.Sleep(300 * time.Millisecond)
-					continue
+				} else {
+					c.lastDispatchedAt = time.Now().Unix()
+					c.lastDispatchedCounter = 0
 				}
-			} else {
-				c.eofCount = 0
-				if i == 0 {
-					continue
-				}
-				data := bytes[:i]
 
-				var e error
-
-				if e == nil && len(data) > 0 {
-					if c.lastDispatchedAt == time.Now().Unix() {
-						c.lastDispatchedCounter += 1
-						if c.lastDispatchedCounter >= 6 {
-							time.Sleep(2 * time.Second)
-						}
-					} else {
-						c.lastDispatchedAt = time.Now().Unix()
-						c.lastDispatchedCounter = 0
-					}
-
-					mId, pack := praseData(data)
-					go c.srv.dispatch(c, mId, pack)
-				}
+				mId, pack := praseData(data)
+				go c.srv.dispatch(c, mId, pack)
 			}
 		}
 	}
@@ -137,39 +123,31 @@ func (c *Client) writeLoop() {
 		}
 	}()
 
-	for {
+	for data := range c.sendBuff {
 
-		if c.isRunning() {
-			timeout := false
-			select {
-			case data := <-c.sendBuff:
-
-				if data == nil {
-					continue
-				}
-
-				c.send2Client(data)
-			case <-time.After(30 * time.Minute):
-				logger.Logger().Error("Client writeloop timeout")
-				timeout = true
-			}
-			if timeout {
-				return
-			}
+		if !c.isRunning() {
+			return
 		}
 
+		c.send2Client(data)
 	}
+
 }
 
-func (c *Client) Write(data *[]byte) {
+func (c *Client) Write(mId uint16, data []byte) {
 	defer func() {
 		if r := recover(); r != nil {
 			logger.Logger().Error("client write loop error:", r)
 		}
 	}()
 
+	idData := make([]byte, 2)
+
+	binary.BigEndian.PutUint16(idData, uint16(mId))
+	data = append(idData, data...)
+
 	if c.isRunning() {
-		c.WriteToSendBuff(data)
+		c.WriteToSendBuff(&data)
 	}
 }
 
@@ -187,7 +165,7 @@ func (c *Client) send2Client(data *[]byte) {
 	c.netConn().SetWriteDeadline(time.Now().Add(10 * time.Minute))
 
 	if n, err := c.nc.Write(*data); err != nil {
-		logger.Logger().Error(fmt.Sprintf("Write ", n," bytes to nc error: ", err))
+		logger.Logger().Error(fmt.Sprintf("Write ", n, " bytes to nc error: ", err))
 		go c.CloseConnection(0*time.Second, false)
 	}
 }

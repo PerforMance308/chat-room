@@ -11,4 +11,5 @@ message roleLoginC2s {
 }
 
 message roleLoginS2c {
+    required bool res = 1;
 }
