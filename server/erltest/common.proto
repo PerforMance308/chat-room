@@ -1,6 +1,0 @@
-message role_login_c2s {
-    required string account = 1;
-}
-
-message role_login_s2c {
-}
