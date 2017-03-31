@@ -77,7 +77,7 @@ func (s *Server) Start() {
 }
 
 func (s *Server) handleConn(conn net.Conn) {
-	//logger.Logger().Debug("server clients counter ", len(s.clients))
+	logger.Logger().Debug("server clients counter ", len(s.clients))
 	c := initClient(conn, s)
 
 	s.mu.Lock()

@@ -131,7 +131,6 @@ func (c *Client) writeLoop() {
 
 		c.send2Client(data)
 	}
-
 }
 
 func (c *Client) Write(mId uint16, data []byte) {
